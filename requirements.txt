@@ -1,0 +1,16 @@
+pandas
+numpy
+matplotlib
+plotly
+seaborn
+sqlalchemy
+pymysql
+python-dotenv
+scipy
+statsmodels
+scikit-learn
+xgboost
+imbalanced-learn
+shap
+joblib
+jupyter

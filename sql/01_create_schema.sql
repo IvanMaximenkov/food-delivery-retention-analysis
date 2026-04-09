@@ -1,16 +1,9 @@
--- =============================================
--- 01_create_schema.sql
--- Создание схемы базы данных для проекта Food Delivery
--- =============================================
+-- Создание схемы базы данных
 
--- Удаляем базу, если она уже существует (для удобства разработки)
--- DROP DATABASE IF EXISTS food_delivery;
--- CREATE DATABASE food_delivery CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- USE food_delivery;
+CREATE DATABASE IF NOT EXISTS food_delivery CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE food_delivery;
 
--- =============================================
--- 1. Таблица пользователей (Dimension)
--- =============================================
+-- Справочник пользователей (Dimension)
 CREATE TABLE IF NOT EXISTS users (
     user_id              INT PRIMARY KEY,
     registration_date    DATETIME NOT NULL,
@@ -26,9 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_ab_group (ab_group)
 ) ENGINE=InnoDB;
 
--- =============================================
--- 2. Таблица заказов (Fact)
--- =============================================
+-- Таблица заказов
 CREATE TABLE IF NOT EXISTS orders (
     order_id       INT PRIMARY KEY,
     user_id        INT NOT NULL,
@@ -37,29 +28,25 @@ CREATE TABLE IF NOT EXISTS orders (
     ab_group       ENUM('A', 'B') NOT NULL,
     city           VARCHAR(50) NOT NULL,
 
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
 
     INDEX idx_order_date (order_date),
     INDEX idx_user_id (user_id),
     INDEX idx_ab_group (ab_group)
 ) ENGINE=InnoDB;
 
--- =============================================
--- 3. Таблица составов заказов (order_items)
--- =============================================
+-- Состав заказов (Bridge / Fact)
 CREATE TABLE IF NOT EXISTS order_items (
     order_item_id  INT AUTO_INCREMENT PRIMARY KEY,
     order_id       INT NOT NULL,
-    item_name      VARCHAR(100),
+    item_name      VARCHAR(100) NOT NULL,
     quantity       TINYINT UNSIGNED NOT NULL,
     price          DECIMAL(8,2) NOT NULL,
 
-    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- =============================================
--- 4. Таблица доставок
--- =============================================
+-- Доставки
 CREATE TABLE IF NOT EXISTS deliveries (
     delivery_id    INT PRIMARY KEY,
     order_id       INT NOT NULL,
@@ -67,35 +54,24 @@ CREATE TABLE IF NOT EXISTS deliveries (
     delivery_time_minutes INT,
     status         ENUM('delivered', 'cancelled', 'delayed'),
 
-    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- =============================================
--- 5. Таблица событий в приложении (events)
--- =============================================
+-- Лог событий в приложении
 CREATE TABLE IF NOT EXISTS events (
     event_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id        INT NOT NULL,
     event_date     DATETIME NOT NULL,
-    event_type     VARCHAR(50) NOT NULL,   -- open_app, add_to_cart, checkout и т.д.
+    event_type     VARCHAR(50) NOT NULL,
     ab_group       ENUM('A', 'B'),
 
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+    
     INDEX idx_event_date (event_date),
     INDEX idx_event_type (event_type)
 ) ENGINE=InnoDB;
 
--- =============================================
--- 6. Таблица A/B групп (справочник)
--- =============================================
-CREATE TABLE IF NOT EXISTS ab_groups (
-    ab_group       ENUM('A', 'B') PRIMARY KEY,
-    description    VARCHAR(200)
-) ENGINE=InnoDB;
-
--- =============================================
--- 7. Таблица платежей
--- =============================================
+-- Платежи
 CREATE TABLE IF NOT EXISTS payments (
     payment_id     INT PRIMARY KEY,
     order_id       INT NOT NULL,
@@ -103,12 +79,10 @@ CREATE TABLE IF NOT EXISTS payments (
     amount         DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(30),
 
-    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- =============================================
--- 8. Таблица промоакций (опционально, но полезно)
--- =============================================
+-- Промоакции
 CREATE TABLE IF NOT EXISTS promotions (
     promo_id       INT PRIMARY KEY,
     user_id        INT,
@@ -117,15 +91,6 @@ CREATE TABLE IF NOT EXISTS promotions (
     discount_amount DECIMAL(8,2),
     promo_date     DATETIME,
 
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
-
--- =============================================
--- Комментарии к таблицам
--- =============================================
-ALTER TABLE users COMMENT = 'Пользователи приложения';
-ALTER TABLE orders COMMENT = 'Основные заказы (Fact table)';
-ALTER TABLE order_items COMMENT = 'Состав каждого заказа';
-ALTER TABLE deliveries COMMENT = 'Информация о доставках';
-ALTER TABLE events COMMENT = 'События в приложении (открытия, корзина и т.д.)';

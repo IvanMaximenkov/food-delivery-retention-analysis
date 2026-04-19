@@ -14,3 +14,5 @@ imbalanced-learn
 shap
 joblib
 jupyter
+cryptography
+kaleido

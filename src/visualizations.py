@@ -7,6 +7,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+def _apply_standard_layout(fig: go.Figure) -> go.Figure:
+    fig.update_layout(
+        template="plotly_white",
+        hoverlabel=dict(bgcolor="white"),
+        margin=dict(l=60, r=30, t=70, b=50),
+    )
+    return fig
+
+
 def repeat_order_rate_figure(repeat_df: pd.DataFrame) -> go.Figure:
     fig = px.bar(
         repeat_df,
@@ -19,13 +28,15 @@ def repeat_order_rate_figure(repeat_df: pd.DataFrame) -> go.Figure:
             "repeat_rate_pct": "Users with repeat order, %",
         },
     )
-    fig.update_traces(marker_color="#2563EB", textposition="outside", cliponaxis=False)
-    fig.update_layout(
-        template="plotly_white",
-        showlegend=False,
-        yaxis_ticksuffix="%",
-        margin=dict(l=60, r=30, t=70, b=50),
+    fig.update_traces(
+        marker_color="#2563EB",
+        textposition="outside",
+        cliponaxis=False,
+        hovertemplate="Window: %{x} days<br>Repeat rate: %{y:.1f}%<extra></extra>",
     )
+    _apply_standard_layout(fig)
+    fig.update_layout(showlegend=False, yaxis_ticksuffix="%")
+    fig.update_yaxes(range=[0, max(repeat_df["repeat_rate_pct"].max() * 1.15, 5)])
     return fig
 
 
@@ -49,7 +60,11 @@ def rfm_bubble_figure(rfm_df: pd.DataFrame) -> go.Figure:
         },
         size_max=35,
     )
-    fig.update_layout(template="plotly_white")
+    _apply_standard_layout(fig)
+    fig.update_traces(
+        marker=dict(line=dict(width=1, color="white")),
+        selector=dict(mode="markers"),
+    )
     return fig
 
 
@@ -85,12 +100,8 @@ def feature_importance_figure(importance_df: pd.DataFrame, top_n: int = 15) -> g
             )
         ]
     )
-    fig.update_layout(
-        template="plotly_white",
-        title="Top Model Features",
-        xaxis_title="Importance",
-        yaxis_title="Feature",
-    )
+    _apply_standard_layout(fig)
+    fig.update_layout(title="Top Model Features", xaxis_title="Importance", yaxis_title="Feature")
     return fig
 
 
@@ -104,8 +115,8 @@ def dashboard_summary_figure(
     fig.add_trace(go.Scatter(x=list(dates), y=list(orders), name="Orders", mode="lines+markers"))
     fig.add_trace(go.Scatter(x=list(dates), y=list(gmv), name="GMV (RUB)", mode="lines"))
     fig.add_trace(go.Scatter(x=list(dates), y=list(dau), name="DAU", mode="lines"))
+    _apply_standard_layout(fig)
     fig.update_layout(
-        template="plotly_white",
         title="Core Product Metrics Trend",
         xaxis_title="Date",
         yaxis_title="Value",
